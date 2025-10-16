@@ -487,39 +487,45 @@
                 <input type="text" id="dateDisplay" readonly style="background: #f0f0f0; cursor: not-allowed;">
             </div>
 
-            <div class="time-row">
+            <!-- Bảng danh sách -->
+            <div id="entriesTableContainer" style="margin-bottom:20px; display:none;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background:#f4f4f4; text-align:left;">
+                            <th style="padding:8px;">#</th>
+                            <th style="padding:8px;">Giờ bắt đầu</th>
+                            <th style="padding:8px;">Giờ kết thúc</th>
+                            <th style="padding:8px;">Nội dung</th>
+                            <th style="padding:8px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesTableBody"></tbody>
+                </table>
+            </div>
+
+            <!-- Form thêm/sửa -->
+            <div id="entryFormContainer" style="display:none;">
+                <div class="time-row">
+                    <div class="form-group">
+                        <label>🕐 Giờ bắt đầu</label>
+                        <input type="time" id="startTime">
+                    </div>
+                    <div class="form-group">
+                        <label>🕔 Giờ kết thúc</label>
+                        <input type="time" id="endTime">
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label>🕐 Giờ bắt đầu</label>
-                    <input type="time" id="startTime" required>
-                </div>
-                <div class="form-group">
-                    <label>🕔 Giờ kết thúc</label>
-                    <input type="time" id="endTime" required>
+                    <label>📝 Nội dung công việc tăng ca</label>
+                    <textarea id="overtimeContent" placeholder="Mô tả công việc bạn làm..."></textarea>
                 </div>
             </div>
-            <div id="timeError" class="error-message"></div>
-
-            <div class="summary" id="timeSummary" style="display: none;">
-                <div class="summary-item">
-                    <span>Thời gian làm việc:</span>
-                    <span id="workDuration">-</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>📝 Nội dung công việc tăng ca</label>
-                <textarea id="overtimeContent" placeholder="Mô tả công việc bạn làm trong giờ tăng ca..."></textarea>
-            </div>
-
-            <div class="voice-status" id="voiceStatus"></div>
 
             <div class="modal-buttons">
-                <button class="btn-voice" id="voiceBtn" onclick="toggleVoiceInput()">
-                    🎤 <span id="voiceBtnText">Nhập giọng nói</span>
-                </button>
-                <button class="btn-danger" onclick="deleteOvertime()">🗑️ Xóa</button>
-                <button class="btn-secondary" onclick="closeModal()">Hủy</button>
-                <button class="btn-primary" onclick="saveOvertime()" id="saveBtn">💾 Lưu</button>
+                <button class="btn-secondary" onclick="showAddForm()">➕ Thêm mới</button>
+                <button class="btn-primary" id="saveBtn" onclick="saveOvertime()">💾 Lưu</button>
+                <button class="btn-danger" onclick="closeModal()">Đóng</button>
             </div>
         </div>
     </div>
@@ -802,6 +808,88 @@
                 summaryDiv.style.display = 'none';
             }
         }
+        let editingIndex = null;
+
+        // Hiển thị danh sách các lần tăng ca trong ngày
+        function renderEntriesTable(dateStr) {
+            const container = document.getElementById('entriesTableContainer');
+            const body = document.getElementById('entriesTableBody');
+            body.innerHTML = '';
+
+            const entries = overtimeData[dateStr];
+            if (!entries || entries.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            entries.forEach((entry, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td style="padding:6px;">${idx + 1}</td>
+            <td style="padding:6px;">${entry.startTime}</td>
+            <td style="padding:6px;">${entry.endTime}</td>
+            <td style="padding:6px;">${entry.content}</td>
+            <td style="padding:6px;">
+                <button onclick="editEntry(${idx})" style="padding:4px 8px;">✏️</button>
+                <button onclick="deleteEntry(${idx})" style="padding:4px 8px; color:red;">🗑️</button>
+            </td>
+        `;
+                body.appendChild(tr);
+            });
+        }
+        // Khi click "Thêm mới"
+        function showAddForm() {
+            editingIndex = null;
+            document.getElementById('entryFormContainer').style.display = 'block';
+            document.getElementById('startTime').value = '';
+            document.getElementById('endTime').value = '';
+            document.getElementById('overtimeContent').value = '';
+        }
+
+        // Khi click "Sửa"
+        function editEntry(idx) {
+            const entries = overtimeData[currentDate];
+            const entry = entries[idx];
+            if (!entry) return;
+
+            editingIndex = idx;
+            document.getElementById('entryFormContainer').style.display = 'block';
+            document.getElementById('startTime').value = entry.startTime;
+            document.getElementById('endTime').value = entry.endTime;
+            document.getElementById('overtimeContent').value = entry.content;
+        }
+
+        // Khi click "Xóa"
+        async function deleteEntry(idx) {
+            if (!confirm('Bạn có chắc muốn xóa dòng này?')) return;
+
+            const entries = overtimeData[currentDate];
+            entries.splice(idx, 1);
+            overtimeData[currentDate] = entries;
+
+            // Cập nhật lại Sheets (xoá hết ngày, ghi lại các dòng còn lại)
+            await deleteData(currentDate);
+            for (const e of entries) {
+                await saveData(currentDate, e.startTime, e.endTime, e.content);
+            }
+
+            renderEntriesTable(currentDate);
+            updateCalendar();
+            updateStats();
+            showSyncStatus('✅ Đã xóa thành công', 'success');
+        }
+        // Mở modal ngày
+        function openModal(date) {
+            currentDate = date.format('YYYY-MM-DD');
+            const displayDate = date.format('DD/MM/YYYY (dddd)');
+
+            document.getElementById('dateDisplay').value = displayDate;
+            document.getElementById('entryFormContainer').style.display = 'none';
+
+            renderEntriesTable(currentDate);
+            document.getElementById('eventModal').classList.add('active');
+        }
 
         // Khởi tạo year select
         function initYearSelect() {
@@ -837,11 +925,11 @@
                 // eventClick: function (event) {
                 //     openModal(moment(event.start));
                 // }
-                eventClick: function(event) {
-    const dateStr = event.extendedProps?.date || moment(event.start).format('YYYY-MM-DD');
-    const idx = event.extendedProps?.index ?? null;
-    openModal(moment(dateStr), idx);
-}
+                eventClick: function (event) {
+                    const dateStr = event.extendedProps?.date || moment(event.start).format('YYYY-MM-DD');
+                    const idx = event.extendedProps?.index ?? null;
+                    openModal(moment(dateStr), idx);
+                }
             });
 
             document.getElementById('monthSelect').addEventListener('change', function () {
@@ -1023,49 +1111,49 @@
 
         //     updateTimeSummary();
         // }
-        function openModal(date, entryIndex = null) {
-    currentDate = date.format('YYYY-MM-DD');
-    const displayDate = date.format('DD/MM/YYYY (dddd)');
+        // function openModal(date, entryIndex = null) {
+        //     currentDate = date.format('YYYY-MM-DD');
+        //     const displayDate = date.format('DD/MM/YYYY (dddd)');
 
-    document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
-    document.getElementById('dateDisplay').value = displayDate;
+        //     document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
+        //     document.getElementById('dateDisplay').value = displayDate;
 
-    // Lấy danh sách tăng ca của ngày
-    const entries = overtimeData[currentDate];
-    let data = null;
+        //     // Lấy danh sách tăng ca của ngày
+        //     const entries = overtimeData[currentDate];
+        //     let data = null;
 
-    if (Array.isArray(entries)) {
-        if (entryIndex !== null && entries[entryIndex]) {
-            data = entries[entryIndex];
-        } else if (entries.length === 1) {
-            data = entries[0];
-        } else {
-            // Nếu có nhiều dòng mà click vào ngày (không event)
-            // thì để modal trống để thêm mới
-            data = null;
-        }
-    } else if (entries && typeof entries === 'object') {
-        data = entries;
-    }
+        //     if (Array.isArray(entries)) {
+        //         if (entryIndex !== null && entries[entryIndex]) {
+        //             data = entries[entryIndex];
+        //         } else if (entries.length === 1) {
+        //             data = entries[0];
+        //         } else {
+        //             // Nếu có nhiều dòng mà click vào ngày (không event)
+        //             // thì để modal trống để thêm mới
+        //             data = null;
+        //         }
+        //     } else if (entries && typeof entries === 'object') {
+        //         data = entries;
+        //     }
 
-    // Gán dữ liệu vào form
-    if (data) {
-        document.getElementById('startTime').value = data.startTime || '';
-        document.getElementById('endTime').value = data.endTime || '';
-        document.getElementById('overtimeContent').value = data.content || '';
-    } else {
-        document.getElementById('startTime').value = '';
-        document.getElementById('endTime').value = '';
-        document.getElementById('overtimeContent').value = '';
-    }
+        //     // Gán dữ liệu vào form
+        //     if (data) {
+        //         document.getElementById('startTime').value = data.startTime || '';
+        //         document.getElementById('endTime').value = data.endTime || '';
+        //         document.getElementById('overtimeContent').value = data.content || '';
+        //     } else {
+        //         document.getElementById('startTime').value = '';
+        //         document.getElementById('endTime').value = '';
+        //         document.getElementById('overtimeContent').value = '';
+        //     }
 
-    document.getElementById('voiceStatus').textContent = '';
-    document.getElementById('timeError').textContent = '';
-    document.getElementById('timeSummary').style.display = 'none';
-    document.getElementById('eventModal').classList.add('active');
+        //     document.getElementById('voiceStatus').textContent = '';
+        //     document.getElementById('timeError').textContent = '';
+        //     document.getElementById('timeSummary').style.display = 'none';
+        //     document.getElementById('eventModal').classList.add('active');
 
-    updateTimeSummary();
-}
+        //     updateTimeSummary();
+        // }
         // Đóng modal
         function closeModal() {
             document.getElementById('eventModal').classList.remove('active');
@@ -1074,52 +1162,39 @@
         }
 
         // Lưu tăng ca
+        // Khi lưu (thêm mới hoặc sửa)
         async function saveOvertime() {
-            const startTime = document.getElementById('startTime').value;
-            const endTime = document.getElementById('endTime').value;
+            const start = document.getElementById('startTime').value;
+            const end = document.getElementById('endTime').value;
             const content = document.getElementById('overtimeContent').value.trim();
-
-            if (!startTime || !endTime) {
-                alert('Vui lòng nhập đầy đủ thời gian!');
+            if (!start || !end || !content) {
+                alert('Vui lòng nhập đầy đủ thông tin!');
                 return;
             }
 
-            const duration = calculateDuration(startTime, endTime);
-            if (!duration || duration.totalMinutes <= 0) {
-                alert('Giờ kết thúc phải sau giờ bắt đầu!');
-                return;
+            if (!overtimeData[currentDate]) overtimeData[currentDate] = [];
+
+            if (editingIndex !== null) {
+                // Cập nhật
+                overtimeData[currentDate][editingIndex] = { startTime: start, endTime: end, content: content };
+            } else {
+                // Thêm mới
+                overtimeData[currentDate].push({ startTime: start, endTime: end, content: content });
             }
 
-            if (!content) {
-                alert('Vui lòng nhập nội dung công việc!');
-                return;
+            // Xoá tất cả dòng trong ngày cũ rồi ghi lại toàn bộ (đơn giản nhất)
+            await deleteData(currentDate);
+            for (const e of overtimeData[currentDate]) {
+                await saveData(currentDate, e.startTime, e.endTime, e.content);
             }
 
-            // Vô hiệu hóa nút lưu
-            const saveBtn = document.getElementById('saveBtn');
-            saveBtn.disabled = true;
-            saveBtn.textContent = '⏳ Đang lưu...';
+            renderEntriesTable(currentDate);
+            updateCalendar();
+            updateStats();
+            showSyncStatus('✅ Đã lưu thành công', 'success');
 
-            // Lưu lên Google Sheets
-            const success = await saveData(currentDate, startTime, endTime, content);
-
-            if (success) {
-                // Cập nhật dữ liệu local
-                overtimeData[currentDate] = {
-                    startTime: startTime,
-                    endTime: endTime,
-                    content: content
-                };
-
-                updateCalendar();
-                updateStats();
-                showSyncStatus('✅ Đã lưu thành công', 'success');
-                closeModal();
-            }
-
-            // Kích hoạt lại nút lưu
-            saveBtn.disabled = false;
-            saveBtn.textContent = '💾 Lưu';
+            // Ẩn form nhập
+            document.getElementById('entryFormContainer').style.display = 'none';
         }
 
         // Xóa tăng ca
