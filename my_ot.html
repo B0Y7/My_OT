@@ -606,6 +606,7 @@
         }
 
         // Load dữ liệu từ Google Sheets
+        // Load dữ liệu từ Google Sheets
         async function loadData() {
             if (!apiUrl) {
                 console.log('Chưa cấu hình API URL');
@@ -621,16 +622,37 @@
                     throw new Error(data.error);
                 }
 
-                overtimeData = data;
+                // ✅ Đảm bảo dữ liệu luôn ở dạng { "yyyy-MM-dd": [ {startTime, endTime, content} ] }
+                overtimeData = {};
+
+                for (const dateKey in data) {
+                    if (!data.hasOwnProperty(dateKey)) continue;
+                    const value = data[dateKey];
+
+                    // Nếu là 1 object đơn, chuyển thành mảng
+                    if (value && !Array.isArray(value)) {
+                        overtimeData[dateKey] = [value];
+                    }
+                    // Nếu là mảng thì giữ nguyên
+                    else if (Array.isArray(value)) {
+                        overtimeData[dateKey] = value.map(v => ({
+                            startTime: v.startTime ?? '',
+                            endTime: v.endTime ?? '',
+                            content: v.content ?? ''
+                        }));
+                    }
+                }
+
                 updateCalendar();
                 updateStats();
                 showSyncStatus('✅ Đã tải dữ liệu thành công', 'success');
+
+                console.log('✅ Dữ liệu đã load:', overtimeData); // kiểm tra log
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu:', error);
                 showSyncStatus('❌ Lỗi: ' + error.message, 'error');
             }
         }
-
         // Lưu dữ liệu lên Google Sheets
         async function saveData(date, startTime, endTime, content) {
             if (!apiUrl) {
@@ -831,8 +853,8 @@
             <td style="padding:6px;">${entry.endTime}</td>
             <td style="padding:6px;">${entry.content}</td>
             <td style="padding:6px;">
-                <button onclick="editEntry(${idx})" style="padding:4px 8px;">✏️</button>
-                <button onclick="deleteEntry(${idx})" style="padding:4px 8px; color:red;">🗑️</button>
+                <button onclick="editEntry(${idx})">✏️</button>
+                <button onclick="deleteEntry(${idx})" style="color:red;">🗑️</button>
             </td>
         `;
                 body.appendChild(tr);
@@ -863,13 +885,11 @@
         // Khi click "Xóa"
         async function deleteEntry(idx) {
             if (!confirm('Bạn có chắc muốn xóa dòng này?')) return;
-
             const entries = overtimeData[currentDate];
             entries.splice(idx, 1);
             overtimeData[currentDate] = entries;
 
-            // Cập nhật lại Sheets (xoá hết ngày, ghi lại các dòng còn lại)
-            await deleteData(currentDate);
+            await deleteData(currentDate); // Xóa tất cả dòng ngày này trong Sheets
             for (const e of entries) {
                 await saveData(currentDate, e.startTime, e.endTime, e.content);
             }
