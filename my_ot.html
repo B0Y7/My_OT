@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản Lý Tăng Ca</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css">
     <style>
-        :root{
+        :root {
             --primary: #0e3f7b;
             --primary-dark: #0b335f;
             --primary-light: #2a6fb5;
@@ -31,7 +32,7 @@
             margin: 0 auto;
             background: white;
             border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             overflow: hidden;
         }
 
@@ -61,7 +62,8 @@
             flex-wrap: wrap;
         }
 
-        .controls select, .controls button {
+        .controls select,
+        .controls button {
             padding: 10px 20px;
             font-size: 16px;
             border: none;
@@ -77,13 +79,13 @@
         }
 
         .controls button {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             color: white;
             font-weight: bold;
         }
 
         .controls button:hover {
-            background: rgba(255,255,255,0.3);
+            background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
         }
 
@@ -126,7 +128,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -142,7 +144,7 @@
             border-radius: 15px;
             max-width: 600px;
             width: 90%;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             max-height: 90vh;
             overflow-y: auto;
         }
@@ -290,8 +292,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
         }
 
         .voice-status {
@@ -331,7 +340,7 @@
             background: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
 
@@ -410,6 +419,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -471,7 +481,7 @@
                 <span>📋</span>
                 <span id="modalTitle">Chi tiết tăng ca</span>
             </h2>
-            
+
             <div class="form-group">
                 <label>📅 Ngày tăng ca</label>
                 <input type="text" id="dateDisplay" readonly style="background: #f0f0f0; cursor: not-allowed;">
@@ -500,9 +510,9 @@
                 <label>📝 Nội dung công việc tăng ca</label>
                 <textarea id="overtimeContent" placeholder="Mô tả công việc bạn làm trong giờ tăng ca..."></textarea>
             </div>
-            
+
             <div class="voice-status" id="voiceStatus"></div>
-            
+
             <div class="modal-buttons">
                 <button class="btn-voice" id="voiceBtn" onclick="toggleVoiceInput()">
                     🎤 <span id="voiceBtnText">Nhập giọng nói</span>
@@ -534,20 +544,20 @@
             recognition.continuous = false;
             recognition.interimResults = false;
 
-            recognition.onresult = function(event) {
+            recognition.onresult = function (event) {
                 const transcript = event.results[0][0].transcript;
                 const currentText = document.getElementById('overtimeContent').value;
                 document.getElementById('overtimeContent').value = currentText + (currentText ? ' ' : '') + transcript;
                 stopVoiceInput();
             };
 
-            recognition.onerror = function(event) {
+            recognition.onerror = function (event) {
                 console.error('Speech recognition error:', event.error);
                 document.getElementById('voiceStatus').textContent = 'Lỗi: ' + event.error;
                 stopVoiceInput();
             };
 
-            recognition.onend = function() {
+            recognition.onend = function () {
                 stopVoiceInput();
             };
         }
@@ -600,11 +610,11 @@
                 showSyncStatus('⏳ Đang tải dữ liệu...', '');
                 const response = await fetch(`${apiUrl}?action=getData`);
                 const data = await response.json();
-                
+
                 if (data.error) {
                     throw new Error(data.error);
                 }
-                
+
                 overtimeData = data;
                 updateCalendar();
                 updateStats();
@@ -632,13 +642,13 @@
                         content: content
                     })
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.error) {
                     throw new Error(result.error);
                 }
-                
+
                 return true;
             } catch (error) {
                 console.error('Lỗi khi lưu dữ liệu:', error);
@@ -661,13 +671,13 @@
                         date: date
                     })
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.error) {
                     throw new Error(result.error);
                 }
-                
+
                 return true;
             } catch (error) {
                 console.error('Lỗi khi xóa dữ liệu:', error);
@@ -688,10 +698,10 @@
             if (!start || !end) return null;
             const [startHour, startMin] = start.split(':').map(Number);
             const [endHour, endMin] = end.split(':').map(Number);
-            
+
             let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
             if (totalMinutes < 0) totalMinutes += 24 * 60;
-            
+
             const hours = Math.floor(totalMinutes / 60);
             const minutes = totalMinutes % 60;
             return { hours, minutes, totalMinutes };
@@ -703,14 +713,14 @@
             const end = document.getElementById('endTime').value;
             const errorDiv = document.getElementById('timeError');
             const summaryDiv = document.getElementById('timeSummary');
-            
+
             errorDiv.textContent = '';
-            
+
             if (start && end) {
                 const duration = calculateDuration(start, end);
                 if (duration && duration.totalMinutes > 0) {
                     summaryDiv.style.display = 'block';
-                    document.getElementById('workDuration').textContent = 
+                    document.getElementById('workDuration').textContent =
                         `${duration.hours} giờ ${duration.minutes} phút`;
                 } else {
                     summaryDiv.style.display = 'none';
@@ -749,19 +759,19 @@
                 editable: false,
                 eventLimit: true,
                 events: getEventsFromData(),
-                dayClick: function(date) {
+                dayClick: function (date) {
                     openModal(date);
                 },
-                eventClick: function(event) {
+                eventClick: function (event) {
                     openModal(moment(event.start));
                 }
             });
 
-            document.getElementById('monthSelect').addEventListener('change', function() {
+            document.getElementById('monthSelect').addEventListener('change', function () {
                 updateCalendarView();
                 updateStats();
             });
-            document.getElementById('yearSelect').addEventListener('change', function() {
+            document.getElementById('yearSelect').addEventListener('change', function () {
                 updateCalendarView();
                 updateStats();
             });
@@ -770,17 +780,35 @@
         }
 
         // Lấy events từ dữ liệu
+        //function getEventsFromData() {
+            // const events = [];
+            // for (const dateStr in overtimeData) {
+            //     const data = overtimeData[dateStr];
+            //     if (data) {
+            //         const duration = calculateDuration(data.startTime, data.endTime);
+            //         const timeText = duration ? `${duration.hours}h${duration.minutes}p` : '';
+            //         events.push({
+            //             title: `⏰ ${timeText} - ${data.content.substring(0, 20)}...`,
+            //             start: dateStr,
+            //             allDay: true
+            //         });
+            //     }
+            // }
+            // return events;
+        //}
         function getEventsFromData() {
             const events = [];
             for (const dateStr in overtimeData) {
-                const data = overtimeData[dateStr];
-                if (data) {
-                    const duration = calculateDuration(data.startTime, data.endTime);
-                    const timeText = duration ? `${duration.hours}h${duration.minutes}p` : '';
-                    events.push({
-                        title: `⏰ ${timeText} - ${data.content.substring(0, 20)}...`,
-                        start: dateStr,
-                        allDay: true
+                const items = overtimeData[dateStr];
+                if (Array.isArray(items)) {
+                    items.forEach((data, idx) => {
+                        const duration = calculateDuration(data.startTime, data.endTime);
+                        const timeText = duration ? `${duration.hours}h${duration.minutes}p` : '';
+                        events.push({
+                            title: `#${idx + 1} ⏰ ${timeText} - ${data.content.substring(0, 20)}...`,
+                            start: dateStr,
+                            allDay: true
+                        });
                     });
                 }
             }
@@ -791,10 +819,10 @@
         function updateStats() {
             const month = parseInt(document.getElementById('monthSelect').value);
             const year = parseInt(document.getElementById('yearSelect').value);
-            
+
             let totalMinutes = 0;
             let daysCount = 0;
-            
+
             for (const dateStr in overtimeData) {
                 const date = new Date(dateStr);
                 if (date.getMonth() === month && date.getFullYear() === year) {
@@ -806,13 +834,13 @@
                     }
                 }
             }
-            
+
             const totalHours = Math.floor(totalMinutes / 60);
             const totalMins = totalMinutes % 60;
             const avgMinutes = daysCount > 0 ? totalMinutes / daysCount : 0;
             const avgHours = Math.floor(avgMinutes / 60);
             const avgMins = Math.floor(avgMinutes % 60);
-            
+
             document.getElementById('totalHours').textContent = `${totalHours}h ${totalMins}p`;
             document.getElementById('totalDays').textContent = daysCount;
             document.getElementById('avgHours').textContent = daysCount > 0 ? `${avgHours}h ${avgMins}p` : '0h';
@@ -845,10 +873,10 @@
         function openModal(date) {
             currentDate = date.format('YYYY-MM-DD');
             const displayDate = date.format('DD/MM/YYYY (dddd)');
-            
+
             document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
             document.getElementById('dateDisplay').value = displayDate;
-            
+
             const data = overtimeData[currentDate];
             if (data) {
                 document.getElementById('startTime').value = data.startTime || '';
@@ -859,12 +887,12 @@
                 document.getElementById('endTime').value = '';
                 document.getElementById('overtimeContent').value = '';
             }
-            
+
             document.getElementById('voiceStatus').textContent = '';
             document.getElementById('timeError').textContent = '';
             document.getElementById('timeSummary').style.display = 'none';
             document.getElementById('eventModal').classList.add('active');
-            
+
             updateTimeSummary();
         }
 
@@ -880,31 +908,31 @@
             const startTime = document.getElementById('startTime').value;
             const endTime = document.getElementById('endTime').value;
             const content = document.getElementById('overtimeContent').value.trim();
-            
+
             if (!startTime || !endTime) {
                 alert('Vui lòng nhập đầy đủ thời gian!');
                 return;
             }
-            
+
             const duration = calculateDuration(startTime, endTime);
             if (!duration || duration.totalMinutes <= 0) {
                 alert('Giờ kết thúc phải sau giờ bắt đầu!');
                 return;
             }
-            
+
             if (!content) {
                 alert('Vui lòng nhập nội dung công việc!');
                 return;
             }
-            
+
             // Vô hiệu hóa nút lưu
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
             saveBtn.textContent = '⏳ Đang lưu...';
-            
+
             // Lưu lên Google Sheets
             const success = await saveData(currentDate, startTime, endTime, content);
-            
+
             if (success) {
                 // Cập nhật dữ liệu local
                 overtimeData[currentDate] = {
@@ -912,13 +940,13 @@
                     endTime: endTime,
                     content: content
                 };
-                
+
                 updateCalendar();
                 updateStats();
                 showSyncStatus('✅ Đã lưu thành công', 'success');
                 closeModal();
             }
-            
+
             // Kích hoạt lại nút lưu
             saveBtn.disabled = false;
             saveBtn.textContent = '💾 Lưu';
@@ -929,14 +957,14 @@
             if (!confirm('Bạn có chắc muốn xóa thông tin tăng ca này?')) {
                 return;
             }
-            
+
             // Xóa từ Google Sheets
             const success = await deleteData(currentDate);
-            
+
             if (success) {
                 // Xóa từ dữ liệu local
                 delete overtimeData[currentDate];
-                
+
                 updateCalendar();
                 updateStats();
                 showSyncStatus('✅ Đã xóa thành công', 'success');
@@ -981,19 +1009,20 @@
         }
 
         // Event listeners
-        $(document).ready(function() {
+        $(document).ready(function () {
             initCalendar();
-            
+
             document.getElementById('startTime').addEventListener('change', updateTimeSummary);
             document.getElementById('endTime').addEventListener('change', updateTimeSummary);
         });
 
         // Đóng modal khi click bên ngoài
-        document.getElementById('eventModal').addEventListener('click', function(e) {
+        document.getElementById('eventModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeModal();
             }
         });
     </script>
 </body>
+
 </html>
