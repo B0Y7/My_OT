@@ -837,11 +837,11 @@
                 // eventClick: function (event) {
                 //     openModal(moment(event.start));
                 // }
-                eventClick: function (event) {
-                    const dateStr = event.extendedProps?.date || moment(event.start).format('YYYY-MM-DD');
-                    const idx = (typeof event.extendedProps?.index === 'number') ? event.extendedProps.index : null;
-                    openModal(moment(dateStr), idx);
-                }
+                eventClick: function(event) {
+    const dateStr = event.extendedProps?.date || moment(event.start).format('YYYY-MM-DD');
+    const idx = event.extendedProps?.index ?? null;
+    openModal(moment(dateStr), idx);
+}
             });
 
             document.getElementById('monthSelect').addEventListener('change', function () {
@@ -1024,40 +1024,48 @@
         //     updateTimeSummary();
         // }
         function openModal(date, entryIndex = null) {
-            currentDate = date.format('YYYY-MM-DD');
-            const displayDate = date.format('DD/MM/YYYY (dddd)');
-            document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
-            document.getElementById('dateDisplay').value = displayDate;
+    currentDate = date.format('YYYY-MM-DD');
+    const displayDate = date.format('DD/MM/YYYY (dddd)');
 
-            const entries = overtimeData[currentDate];
-            let data = null;
+    document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
+    document.getElementById('dateDisplay').value = displayDate;
 
-            if (Array.isArray(entries)) {
-                if (entryIndex !== null && entries[entryIndex]) {
-                    data = entries[entryIndex];
-                } else if (entries.length === 1) {
-                    data = entries[0];
-                }
-            } else if (entries && typeof entries === 'object') {
-                data = entries;
-            }
+    // Lấy danh sách tăng ca của ngày
+    const entries = overtimeData[currentDate];
+    let data = null;
 
-            if (data) {
-                document.getElementById('startTime').value = normalizeTime(data.startTime) || '';
-                document.getElementById('endTime').value = normalizeTime(data.endTime) || '';
-                document.getElementById('overtimeContent').value = data.content ? String(data.content) : '';
-            } else {
-                document.getElementById('startTime').value = '';
-                document.getElementById('endTime').value = '';
-                document.getElementById('overtimeContent').value = '';
-            }
-
-            document.getElementById('voiceStatus').textContent = '';
-            document.getElementById('timeError').textContent = '';
-            document.getElementById('timeSummary').style.display = 'none';
-            document.getElementById('eventModal').classList.add('active');
-            updateTimeSummary();
+    if (Array.isArray(entries)) {
+        if (entryIndex !== null && entries[entryIndex]) {
+            data = entries[entryIndex];
+        } else if (entries.length === 1) {
+            data = entries[0];
+        } else {
+            // Nếu có nhiều dòng mà click vào ngày (không event)
+            // thì để modal trống để thêm mới
+            data = null;
         }
+    } else if (entries && typeof entries === 'object') {
+        data = entries;
+    }
+
+    // Gán dữ liệu vào form
+    if (data) {
+        document.getElementById('startTime').value = data.startTime || '';
+        document.getElementById('endTime').value = data.endTime || '';
+        document.getElementById('overtimeContent').value = data.content || '';
+    } else {
+        document.getElementById('startTime').value = '';
+        document.getElementById('endTime').value = '';
+        document.getElementById('overtimeContent').value = '';
+    }
+
+    document.getElementById('voiceStatus').textContent = '';
+    document.getElementById('timeError').textContent = '';
+    document.getElementById('timeSummary').style.display = 'none';
+    document.getElementById('eventModal').classList.add('active');
+
+    updateTimeSummary();
+}
         // Đóng modal
         function closeModal() {
             document.getElementById('eventModal').classList.remove('active');
