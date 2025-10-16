@@ -746,18 +746,18 @@
             return String(value);
         }
         // Tính toán thời gian làm việc
-        // function calculateDuration(start, end) {
-        //     if (!start || !end) return null;
-        //     const [startHour, startMin] = start.split(':').map(Number);
-        //     const [endHour, endMin] = end.split(':').map(Number);
+        function calculateDuration(start, end) {
+            if (!start || !end) return null;
+            const [startHour, startMin] = start.split(':').map(Number);
+            const [endHour, endMin] = end.split(':').map(Number);
 
-        //     let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
-        //     if (totalMinutes < 0) totalMinutes += 24 * 60;
+            let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+            if (totalMinutes < 0) totalMinutes += 24 * 60;
 
-        //     const hours = Math.floor(totalMinutes / 60);
-        //     const minutes = totalMinutes % 60;
-        //     return { hours, minutes, totalMinutes };
-        // }
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return { hours, minutes, totalMinutes };
+        }
         function getEventsFromData() {
             const events = [];
             for (const dateStr in overtimeData) {
