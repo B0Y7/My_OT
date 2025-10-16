@@ -823,67 +823,67 @@
         // return events;
         //}
         function getEventsFromData() {
-            const events = [];
+    const events = [];
 
-            for (const dateStr in overtimeData) {
-                const entries = overtimeData[dateStr];
-                if (!entries) continue;
+    for (const dateStr in overtimeData) {
+        const entries = overtimeData[dateStr];
+        if (!entries) continue;
 
-                // Trường hợp: ngày có nhiều dòng (kiểu mảng)
-                if (Array.isArray(entries)) {
-                    entries.forEach((entry, idx) => {
-                        if (!entry) return;
+        // Trường hợp: ngày có nhiều dòng (kiểu mảng)
+        if (Array.isArray(entries)) {
+            entries.forEach((entry, idx) => {
+                if (!entry) return;
 
-                        const start = entry.startTime || '';
-                        const end = entry.endTime || '';
-                        const content = entry.content || '(Không có nội dung)';
+                const start = entry.startTime || '';
+                const end = entry.endTime || '';
+                const content = entry.content || '(Không có nội dung)';
 
-                        let timeLabel = '';
-                        const duration = calculateDuration(start, end);
-                        if (duration && duration.totalMinutes > 0) {
-                            timeLabel = `${duration.hours}h${duration.minutes}p`;
-                        } else if (start && end) {
-                            timeLabel = `${start}→${end}`;
-                        }
-
-                        // Nếu cả start/end đều trống
-                        if (!timeLabel) timeLabel = 'Chưa nhập giờ';
-
-                        events.push({
-                            title: `#${idx + 1} ⏰ ${timeLabel} - ${content.substring(0, 30)}`,
-                            start: dateStr,
-                            allDay: true,
-                            extendedProps: { index: idx, date: dateStr }
-                        });
-                    });
+                let timeLabel = '';
+                const duration = calculateDuration(start, end);
+                if (duration && duration.totalMinutes > 0) {
+                    timeLabel = `${duration.hours}h${duration.minutes}p`;
+                } else if (start && end) {
+                    timeLabel = `${start}→${end}`;
                 }
-                // Trường hợp: chỉ 1 object trong ngày
-                else if (typeof entries === 'object') {
-                    const start = entries.startTime || '';
-                    const end = entries.endTime || '';
-                    const content = entries.content || '(Không có nội dung)';
 
-                    let timeLabel = '';
-                    const duration = calculateDuration(start, end);
-                    if (duration && duration.totalMinutes > 0) {
-                        timeLabel = `${duration.hours}h${duration.minutes}p`;
-                    } else if (start && end) {
-                        timeLabel = `${start}→${end}`;
-                    }
+                // Nếu cả start/end đều trống
+                if (!timeLabel) timeLabel = 'Chưa nhập giờ';
 
-                    if (!timeLabel) timeLabel = 'Chưa nhập giờ';
+                events.push({
+                    title: `#${idx + 1} ⏰ ${timeLabel} - ${content.substring(0, 30)}`,
+                    start: dateStr,
+                    allDay: true,
+                    extendedProps: { index: idx, date: dateStr }
+                });
+            });
+        }
+        // Trường hợp: chỉ 1 object trong ngày
+        else if (typeof entries === 'object') {
+            const start = entries.startTime || '';
+            const end = entries.endTime || '';
+            const content = entries.content || '(Không có nội dung)';
 
-                    events.push({
-                        title: `⏰ ${timeLabel} - ${content.substring(0, 30)}`,
-                        start: dateStr,
-                        allDay: true,
-                        extendedProps: { index: 0, date: dateStr }
-                    });
-                }
+            let timeLabel = '';
+            const duration = calculateDuration(start, end);
+            if (duration && duration.totalMinutes > 0) {
+                timeLabel = `${duration.hours}h${duration.minutes}p`;
+            } else if (start && end) {
+                timeLabel = `${start}→${end}`;
             }
 
-            return events;
+            if (!timeLabel) timeLabel = 'Chưa nhập giờ';
+
+            events.push({
+                title: `⏰ ${timeLabel} - ${content.substring(0, 30)}`,
+                start: dateStr,
+                allDay: true,
+                extendedProps: { index: 0, date: dateStr }
+            });
         }
+    }
+
+    return events;
+}
         // Cập nhật thống kê
         function updateStats() {
             const month = parseInt(document.getElementById('monthSelect').value);
