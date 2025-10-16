@@ -787,8 +787,8 @@
                 //     openModal(moment(event.start));
                 // }
                 eventClick: function (event) {
-                    const dateStr = event.extendedProps?.date || moment(event.start).format('YYYY-MM-DD');
-                    const idx = event.extendedProps?.index ?? null;
+                    const dateStr = event.extendedProps?.date || event.start.format('YYYY-MM-DD');
+                    const idx = event.extendedProps?.index || 0;
                     openModal(moment(dateStr), idx);
                 }
             });
@@ -971,32 +971,24 @@
             document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
             document.getElementById('dateDisplay').value = displayDate;
 
-            // Lấy danh sách tăng ca của ngày
+            // Lấy dữ liệu của ngày
             const entries = overtimeData[currentDate];
             let data = null;
 
-            if (Array.isArray(entries)) {
-                // Nếu click từ calendar có index → lấy đúng entry đó
-                if (entryIndex !== null && entries[entryIndex]) {
-                    data = entries[entryIndex];
-                }
-                // Nếu chỉ có 1 entry thì mặc định lấy entry đầu tiên
-                else if (entries.length === 1) {
-                    data = entries[0];
-                }
-            }
-            // Dữ liệu kiểu cũ: chỉ 1 object
-            else if (entries && typeof entries === 'object') {
+            if (Array.isArray(entries) && entryIndex !== null) {
+                data = entries[entryIndex];
+            } else if (Array.isArray(entries) && entries.length === 1) {
+                data = entries[0];
+            } else if (entries && typeof entries === 'object') {
                 data = entries;
             }
 
-            // Gán vào form
+            // Gán dữ liệu vào form
             if (data) {
                 document.getElementById('startTime').value = data.startTime || '';
                 document.getElementById('endTime').value = data.endTime || '';
                 document.getElementById('overtimeContent').value = data.content || '';
             } else {
-                // Khi click vào ngày trống
                 document.getElementById('startTime').value = '';
                 document.getElementById('endTime').value = '';
                 document.getElementById('overtimeContent').value = '';
