@@ -781,37 +781,66 @@
 
         // Lấy events từ dữ liệu
         //function getEventsFromData() {
-            // const events = [];
-            // for (const dateStr in overtimeData) {
-            //     const data = overtimeData[dateStr];
-            //     if (data) {
-            //         const duration = calculateDuration(data.startTime, data.endTime);
-            //         const timeText = duration ? `${duration.hours}h${duration.minutes}p` : '';
-            //         events.push({
-            //             title: `⏰ ${timeText} - ${data.content.substring(0, 20)}...`,
-            //             start: dateStr,
-            //             allDay: true
-            //         });
-            //     }
-            // }
-            // return events;
+        // const events = [];
+        // for (const dateStr in overtimeData) {
+        //     const data = overtimeData[dateStr];
+        //     if (data) {
+        //         const duration = calculateDuration(data.startTime, data.endTime);
+        //         const timeText = duration ? `${duration.hours}h${duration.minutes}p` : '';
+        //         events.push({
+        //             title: `⏰ ${timeText} - ${data.content.substring(0, 20)}...`,
+        //             start: dateStr,
+        //             allDay: true
+        //         });
+        //     }
+        // }
+        // return events;
         //}
         function getEventsFromData() {
             const events = [];
+
             for (const dateStr in overtimeData) {
-                const items = overtimeData[dateStr];
-                if (Array.isArray(items)) {
-                    items.forEach((data, idx) => {
-                        const duration = calculateDuration(data.startTime, data.endTime);
-                        const timeText = duration ? `${duration.hours}h${duration.minutes}p` : '';
+                const entries = overtimeData[dateStr];
+
+                if (Array.isArray(entries)) {
+                    // Trường hợp 1 ngày có nhiều lần tăng ca
+                    entries.forEach((entry, idx) => {
+                        if (!entry) return; // bỏ qua nếu entry null/undefined
+
+                        const start = entry.startTime || '';
+                        const end = entry.endTime || '';
+                        const content = entry.content || '';
+
+                        const duration = calculateDuration(start, end);
+                        const timeText = duration
+                            ? `${duration.hours}h${duration.minutes}p`
+                            : '';
+
                         events.push({
-                            title: `#${idx + 1} ⏰ ${timeText} - ${data.content.substring(0, 20)}...`,
+                            title: `#${idx + 1} ⏰ ${timeText} - ${content.substring(0, 20)}`,
                             start: dateStr,
                             allDay: true
                         });
                     });
+                } else if (entries && typeof entries === 'object') {
+                    // Trường hợp cũ: chỉ có 1 bản ghi trong ngày
+                    const start = entries.startTime || '';
+                    const end = entries.endTime || '';
+                    const content = entries.content || '';
+
+                    const duration = calculateDuration(start, end);
+                    const timeText = duration
+                        ? `${duration.hours}h${duration.minutes}p`
+                        : '';
+
+                    events.push({
+                        title: `⏰ ${timeText} - ${content.substring(0, 20)}`,
+                        start: dateStr,
+                        allDay: true
+                    });
                 }
             }
+
             return events;
         }
 
