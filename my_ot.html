@@ -1175,9 +1175,14 @@
         // }
         // Đóng modal
         function closeModal() {
-            document.getElementById('eventModal').classList.remove('active');
+            document.getElementById('eventModal')?.classList.remove('active');
             currentDate = null;
-            stopVoiceInput?.();
+            if (typeof stopVoiceInput === 'function') {
+                try { stopVoiceInput(); } catch (e) { }
+            }
+        }
+        function stopVoiceInput() {
+            // Không dùng tính năng nhận giọng nói => bỏ qua
         }
 
         // Lưu tăng ca
