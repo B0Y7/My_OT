@@ -694,12 +694,33 @@
         }
 
         // Tính toán thời gian làm việc
-        function calculateDuration(start, end) {
-            if (!start || !end) return null;
-            const [startHour, startMin] = start.split(':').map(Number);
-            const [endHour, endMin] = end.split(':').map(Number);
+        // function calculateDuration(start, end) {
+        //     if (!start || !end) return null;
+        //     const [startHour, startMin] = start.split(':').map(Number);
+        //     const [endHour, endMin] = end.split(':').map(Number);
 
-            let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+        //     let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+        //     if (totalMinutes < 0) totalMinutes += 24 * 60;
+
+        //     const hours = Math.floor(totalMinutes / 60);
+        //     const minutes = totalMinutes % 60;
+        //     return { hours, minutes, totalMinutes };
+        // }
+        function calculateDuration(start, end) {
+            // Nếu thiếu start hoặc end thì trả null
+            if (!start || !end || typeof start !== 'string' || typeof end !== 'string') {
+                return null;
+            }
+
+            const partsStart = start.split(':').map(Number);
+            const partsEnd = end.split(':').map(Number);
+
+            // Kiểm tra hợp lệ
+            if (partsStart.length < 2 || partsEnd.length < 2 || isNaN(partsStart[0]) || isNaN(partsEnd[0])) {
+                return null;
+            }
+
+            let totalMinutes = (partsEnd[0] * 60 + partsEnd[1]) - (partsStart[0] * 60 + partsStart[1]);
             if (totalMinutes < 0) totalMinutes += 24 * 60;
 
             const hours = Math.floor(totalMinutes / 60);
@@ -806,7 +827,9 @@
 
             for (const dateStr in overtimeData) {
                 const entries = overtimeData[dateStr];
+                if (!entries) continue;
 
+                // Trường hợp: ngày có nhiều dòng (kiểu mảng)
                 if (Array.isArray(entries)) {
                     entries.forEach((entry, idx) => {
                         if (!entry) return;
@@ -815,42 +838,46 @@
                         const end = entry.endTime || '';
                         const content = entry.content || '(Không có nội dung)';
 
-                        let durationText = '';
+                        let timeLabel = '';
                         const duration = calculateDuration(start, end);
-                        if (duration && !isNaN(duration.hours)) {
-                            durationText = `${duration.hours}h${duration.minutes}p`;
+                        if (duration && duration.totalMinutes > 0) {
+                            timeLabel = `${duration.hours}h${duration.minutes}p`;
+                        } else if (start && end) {
+                            timeLabel = `${start}→${end}`;
                         }
 
+                        // Nếu cả start/end đều trống
+                        if (!timeLabel) timeLabel = 'Chưa nhập giờ';
+
                         events.push({
-                            title: `#${idx + 1} ⏰ ${durationText} - ${content.substring(0, 20)}`,
+                            title: `#${idx + 1} ⏰ ${timeLabel} - ${content.substring(0, 30)}`,
                             start: dateStr,
                             allDay: true,
-                            extendedProps: {
-                                index: idx,
-                                date: dateStr
-                            }
+                            extendedProps: { index: idx, date: dateStr }
                         });
                     });
                 }
-                else if (entries && typeof entries === 'object') {
+                // Trường hợp: chỉ 1 object trong ngày
+                else if (typeof entries === 'object') {
                     const start = entries.startTime || '';
                     const end = entries.endTime || '';
                     const content = entries.content || '(Không có nội dung)';
 
-                    let durationText = '';
+                    let timeLabel = '';
                     const duration = calculateDuration(start, end);
-                    if (duration && !isNaN(duration.hours)) {
-                        durationText = `${duration.hours}h${duration.minutes}p`;
+                    if (duration && duration.totalMinutes > 0) {
+                        timeLabel = `${duration.hours}h${duration.minutes}p`;
+                    } else if (start && end) {
+                        timeLabel = `${start}→${end}`;
                     }
 
+                    if (!timeLabel) timeLabel = 'Chưa nhập giờ';
+
                     events.push({
-                        title: `⏰ ${durationText} - ${content.substring(0, 20)}`,
+                        title: `⏰ ${timeLabel} - ${content.substring(0, 30)}`,
                         start: dateStr,
                         allDay: true,
-                        extendedProps: {
-                            index: 0,
-                            date: dateStr
-                        }
+                        extendedProps: { index: 0, date: dateStr }
                     });
                 }
             }
