@@ -762,8 +762,13 @@
                 dayClick: function (date) {
                     openModal(date);
                 },
+                // eventClick: function (event) {
+                //     openModal(moment(event.start));
+                // }
                 eventClick: function (event) {
-                    openModal(moment(event.start));
+                    const dateStr = event.extendedProps?.date || event.start.format('YYYY-MM-DD');
+                    const idx = event.extendedProps?.index || 0;
+                    openModal(moment(dateStr), idx);
                 }
             });
 
@@ -803,47 +808,55 @@
                 const entries = overtimeData[dateStr];
 
                 if (Array.isArray(entries)) {
-                    // Trường hợp 1 ngày có nhiều lần tăng ca
                     entries.forEach((entry, idx) => {
-                        if (!entry) return; // bỏ qua nếu entry null/undefined
+                        if (!entry) return;
 
                         const start = entry.startTime || '';
                         const end = entry.endTime || '';
-                        const content = entry.content || '';
+                        const content = entry.content || '(Không có nội dung)';
 
+                        let durationText = '';
                         const duration = calculateDuration(start, end);
-                        const timeText = duration
-                            ? `${duration.hours}h${duration.minutes}p`
-                            : '';
+                        if (duration && !isNaN(duration.hours)) {
+                            durationText = `${duration.hours}h${duration.minutes}p`;
+                        }
 
                         events.push({
-                            title: `#${idx + 1} ⏰ ${timeText} - ${content.substring(0, 20)}`,
+                            title: `#${idx + 1} ⏰ ${durationText} - ${content.substring(0, 20)}`,
                             start: dateStr,
-                            allDay: true
+                            allDay: true,
+                            extendedProps: {
+                                index: idx,
+                                date: dateStr
+                            }
                         });
                     });
-                } else if (entries && typeof entries === 'object') {
-                    // Trường hợp cũ: chỉ có 1 bản ghi trong ngày
+                }
+                else if (entries && typeof entries === 'object') {
                     const start = entries.startTime || '';
                     const end = entries.endTime || '';
-                    const content = entries.content || '';
+                    const content = entries.content || '(Không có nội dung)';
 
+                    let durationText = '';
                     const duration = calculateDuration(start, end);
-                    const timeText = duration
-                        ? `${duration.hours}h${duration.minutes}p`
-                        : '';
+                    if (duration && !isNaN(duration.hours)) {
+                        durationText = `${duration.hours}h${duration.minutes}p`;
+                    }
 
                     events.push({
-                        title: `⏰ ${timeText} - ${content.substring(0, 20)}`,
+                        title: `⏰ ${durationText} - ${content.substring(0, 20)}`,
                         start: dateStr,
-                        allDay: true
+                        allDay: true,
+                        extendedProps: {
+                            index: 0,
+                            date: dateStr
+                        }
                     });
                 }
             }
 
             return events;
         }
-
         // Cập nhật thống kê
         function updateStats() {
             const month = parseInt(document.getElementById('monthSelect').value);
@@ -899,14 +912,51 @@
         }
 
         // Mở modal
-        function openModal(date) {
+        // function openModal(date) {
+        //     currentDate = date.format('YYYY-MM-DD');
+        //     const displayDate = date.format('DD/MM/YYYY (dddd)');
+
+        //     document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
+        //     document.getElementById('dateDisplay').value = displayDate;
+
+        //     const data = overtimeData[currentDate];
+        //     if (data) {
+        //         document.getElementById('startTime').value = data.startTime || '';
+        //         document.getElementById('endTime').value = data.endTime || '';
+        //         document.getElementById('overtimeContent').value = data.content || '';
+        //     } else {
+        //         document.getElementById('startTime').value = '';
+        //         document.getElementById('endTime').value = '';
+        //         document.getElementById('overtimeContent').value = '';
+        //     }
+
+        //     document.getElementById('voiceStatus').textContent = '';
+        //     document.getElementById('timeError').textContent = '';
+        //     document.getElementById('timeSummary').style.display = 'none';
+        //     document.getElementById('eventModal').classList.add('active');
+
+        //     updateTimeSummary();
+        // }
+        function openModal(date, entryIndex = null) {
             currentDate = date.format('YYYY-MM-DD');
             const displayDate = date.format('DD/MM/YYYY (dddd)');
 
             document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
             document.getElementById('dateDisplay').value = displayDate;
 
-            const data = overtimeData[currentDate];
+            // Lấy dữ liệu của ngày
+            const entries = overtimeData[currentDate];
+            let data = null;
+
+            if (Array.isArray(entries) && entryIndex !== null) {
+                data = entries[entryIndex];
+            } else if (Array.isArray(entries) && entries.length === 1) {
+                data = entries[0];
+            } else if (entries && typeof entries === 'object') {
+                data = entries;
+            }
+
+            // Gán dữ liệu vào form
             if (data) {
                 document.getElementById('startTime').value = data.startTime || '';
                 document.getElementById('endTime').value = data.endTime || '';
