@@ -181,7 +181,8 @@
         }
 
         .form-group input[type="time"]:focus,
-        .form-group textarea:focus {
+        .form-group textarea:focus,
+        .form-group input[type="text"]:focus {
             outline: none;
             border-color: var(--primary);
         }
@@ -481,7 +482,7 @@
                             <th style="width: 100px;">Giờ bắt đầu</th>
                             <th style="width: 100px;">Giờ kết thúc</th>
                             <th>Nội dung</th>
-                            <th style="width: 120px;">Thao tác</th>
+                            <th style="width: 140px;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="entriesTableBody"></tbody>
@@ -595,12 +596,14 @@
         // Hiển thị trạng thái đồng bộ
         function showSyncStatus(message, type = '') {
             const statusEl = document.getElementById('syncStatus');
-            statusEl.textContent = message;
-            statusEl.className = 'sync-status ' + type;
-            setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = 'sync-status';
-            }, 3000);
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = 'sync-status ' + type;
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                    statusEl.className = 'sync-status';
+                }, 3000);
+            }
         }
 
         // Load dữ liệu từ Google Sheets
@@ -693,9 +696,10 @@
 
         // Làm mới dữ liệu
         async function refreshData() {
-            document.getElementById('refreshBtn').disabled = true;
+            const btn = document.getElementById('refreshBtn');
+            if (btn) btn.disabled = true;
             await loadData();
-            document.getElementById('refreshBtn').disabled = false;
+            if (btn) btn.disabled = false;
         }
 
         // Lấy events từ dữ liệu
@@ -766,16 +770,20 @@
             const avgHours = Math.floor(avgMinutes / 60);
             const avgMins = Math.floor(avgMinutes % 60);
 
-            document.getElementById('totalHours').textContent = `${totalHours}h ${totalMins}p`;
-            document.getElementById('totalDays').textContent = daysCount;
-            document.getElementById('avgHours').textContent = daysCount > 0 ? `${avgHours}h ${avgMins}p` : '0h';
+            const totalHoursEl = document.getElementById('totalHours');
+            const totalDaysEl = document.getElementById('totalDays');
+            const avgHoursEl = document.getElementById('avgHours');
+
+            if (totalHoursEl) totalHoursEl.textContent = `${totalHours}h ${totalMins}p`;
+            if (totalDaysEl) totalDaysEl.textContent = daysCount;
+            if (avgHoursEl) avgHoursEl.textContent = daysCount > 0 ? `${avgHours}h ${avgMins}p` : '0h';
         }
 
         // Hiển thị danh sách các lần tăng ca trong ngày
         function renderEntriesTable(dateStr) {
             const container = document.getElementById('entriesTableContainer');
             const body = document.getElementById('entriesTableBody');
-            if (!body) return;
+            if (!body || !container) return;
             
             body.innerHTML = '';
 
@@ -799,7 +807,7 @@
                     <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${ct}</td>
                     <td class="actions">
                         <button class="btn-edit" onclick="editEntry(${idx})">✏️ Sửa</button>
-                        <button class="btn-delete" onclick="deleteEntry(${idx})">🗑️ Xóa</button>
+                        <button class="btn-delete" onclick="deleteEntry(${idx})">🗑️</button>
                     </td>
                 `;
                 body.appendChild(tr);
@@ -809,8 +817,12 @@
         // Hiển thị form thêm mới
         function showAddForm() {
             editingIndex = null;
-            document.getElementById('formTitle').textContent = '➕ Thêm mới tăng ca';
-            document.getElementById('entryFormContainer').style.display = 'block';
+            const formTitle = document.getElementById('formTitle');
+            const formContainer = document.getElementById('entryFormContainer');
+            
+            if (formTitle) formTitle.textContent = '➕ Thêm mới tăng ca';
+            if (formContainer) formContainer.style.display = 'block';
+            
             document.getElementById('startTime').value = '';
             document.getElementById('endTime').value = '';
             document.getElementById('overtimeContent').value = '';
@@ -818,7 +830,8 @@
 
         // Hủy form
         function cancelForm() {
-            document.getElementById('entryFormContainer').style.display = 'none';
+            const formContainer = document.getElementById('entryFormContainer');
+            if (formContainer) formContainer.style.display = 'none';
             editingIndex = null;
         }
 
@@ -830,8 +843,12 @@
             const entry = entries[idx];
             editingIndex = idx;
             
-            document.getElementById('formTitle').textContent = '✏️ Sửa tăng ca';
-            document.getElementById('entryFormContainer').style.display = 'block';
+            const formTitle = document.getElementById('formTitle');
+            const formContainer = document.getElementById('entryFormContainer');
+            
+            if (formTitle) formTitle.textContent = '✏️ Sửa tăng ca';
+            if (formContainer) formContainer.style.display = 'block';
+            
             document.getElementById('startTime').value = entry.startTime || '';
             document.getElementById('endTime').value = entry.endTime || '';
             document.getElementById('overtimeContent').value = entry.content || '';
@@ -904,7 +921,8 @@
             updateStats();
             showSyncStatus('✅ Đã lưu thành công', 'success');
 
-            document.getElementById('entryFormContainer').style.display = 'none';
+            const formContainer = document.getElementById('entryFormContainer');
+            if (formContainer) formContainer.style.display = 'none';
             editingIndex = null;
         }
 
@@ -913,10 +931,14 @@
             currentDate = date.format('YYYY-MM-DD');
             const displayDate = date.format('DD/MM/YYYY (dddd)');
 
-            document.getElementById('modalTitle').textContent = 'Chi tiết tăng ca';
-            document.getElementById('dateDisplay').value = displayDate;
-
-            document.getElementById('entryFormContainer').style.display = 'none';
+            const modalTitle = document.getElementById('modalTitle');
+            const dateDisplay = document.getElementById('dateDisplay');
+            const formContainer = document.getElementById('entryFormContainer');
+            
+            if (modalTitle) modalTitle.textContent = 'Chi tiết tăng ca';
+            if (dateDisplay) dateDisplay.value = displayDate;
+            if (formContainer) formContainer.style.display = 'none';
+            
             editingIndex = null;
 
             renderEntriesTable(currentDate);
@@ -925,20 +947,27 @@
                 setTimeout(() => { editEntry(entryIndex); }, 100);
             }
 
-            document.getElementById('eventModal').classList.add('active');
+            const modal = document.getElementById('eventModal');
+            if (modal) modal.classList.add('active');
         }
 
         // Đóng modal
         function closeModal() {
-            document.getElementById('eventModal').classList.remove('active');
+            const modal = document.getElementById('eventModal');
+            const formContainer = document.getElementById('entryFormContainer');
+            
+            if (modal) modal.classList.remove('active');
+            if (formContainer) formContainer.style.display = 'none';
+            
             currentDate = null;
             editingIndex = null;
-            document.getElementById('entryFormContainer').style.display = 'none';
         }
 
         // Khởi tạo year select
         function initYearSelect() {
             const yearSelect = document.getElementById('yearSelect');
+            if (!yearSelect) return;
+            
             const currentYear = new Date().getFullYear();
             for (let year = currentYear - 2; year <= currentYear + 2; year++) {
                 const option = document.createElement('option');
@@ -951,8 +980,13 @@
 
         // Cập nhật calendar view
         function updateCalendarView() {
-            const month = parseInt(document.getElementById('monthSelect').value);
-            const year = parseInt(document.getElementById('yearSelect').value);
+            const monthSelect = document.getElementById('monthSelect');
+            const yearSelect = document.getElementById('yearSelect');
+            
+            if (!monthSelect || !yearSelect) return;
+            
+            const month = parseInt(monthSelect.value);
+            const year = parseInt(yearSelect.value);
             const newDate = new Date(year, month, 1);
             $('#calendar').fullCalendar('gotoDate', newDate);
         }
@@ -967,8 +1001,12 @@
         // Đi đến hôm nay
         function goToToday() {
             const today = new Date();
-            document.getElementById('monthSelect').value = today.getMonth();
-            document.getElementById('yearSelect').value = today.getFullYear();
+            const monthSelect = document.getElementById('monthSelect');
+            const yearSelect = document.getElementById('yearSelect');
+            
+            if (monthSelect) monthSelect.value = today.getMonth();
+            if (yearSelect) yearSelect.value = today.getFullYear();
+            
             $('#calendar').fullCalendar('today');
             updateStats();
         }
@@ -980,7 +1018,8 @@
             initYearSelect();
 
             const today = new Date();
-            document.getElementById('monthSelect').value = today.getMonth();
+            const monthSelect = document.getElementById('monthSelect');
+            if (monthSelect) monthSelect.value = today.getMonth();
 
             $('#calendar').fullCalendar({
                 locale: 'vi',
@@ -998,15 +1037,22 @@
                 }
             });
 
-            document.getElementById('monthSelect').addEventListener('change', function () {
-                updateCalendarView();
-                updateStats();
-            });
+            const monthSelectEl = document.getElementById('monthSelect');
+            const yearSelectEl = document.getElementById('yearSelect');
             
-            document.getElementById('yearSelect').addEventListener('change', function () {
-                updateCalendarView();
-                updateStats();
-            });
+            if (monthSelectEl) {
+                monthSelectEl.addEventListener('change', function () {
+                    updateCalendarView();
+                    updateStats();
+                });
+            }
+            
+            if (yearSelectEl) {
+                yearSelectEl.addEventListener('change', function () {
+                    updateCalendarView();
+                    updateStats();
+                });
+            }
 
             updateStats();
         }
@@ -1017,11 +1063,14 @@
         });
 
         // Đóng modal khi click bên ngoài
-        document.getElementById('eventModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
+        const eventModal = document.getElementById('eventModal');
+        if (eventModal) {
+            eventModal.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        }
     </script>
 </body>
 </html>
