@@ -94,6 +94,14 @@
             cursor: not-allowed;
         }
 
+        .btn-export {
+            background: #27ae60 !important;
+        }
+
+        .btn-export:hover {
+            background: #229954 !important;
+        }
+
         #calendar {
             padding: 30px;
         }
@@ -430,8 +438,9 @@
                     <option value="11">Tháng 12</option>
                 </select>
                 <select id="yearSelect"></select>
-                <button onclick="goToToday()">📍 Hôm nay</button>
+                <button onclick="goToToday()">🔍 Hôm nay</button>
                 <button onclick="refreshData()" id="refreshBtn">🔄 Làm mới</button>
+                <button onclick="exportToExcel()" class="btn-export">📊 Export Excel</button>
             </div>
         </div>
 
@@ -499,7 +508,7 @@
                         <input type="time" id="startTime">
                     </div>
                     <div class="form-group">
-                        <label>🕓 Giờ kết thúc</label>
+                        <label>🕔 Giờ kết thúc</label>
                         <input type="time" id="endTime">
                     </div>
                 </div>
@@ -526,6 +535,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/locale/vi.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
         let overtimeData = {};
@@ -533,7 +543,6 @@
         let editingIndex = null;
         let apiUrl = '';
 
-        // Chuẩn hóa định dạng thời gian
         function normalizeTime(value) {
             if (!value && value !== 0) return '';
             if (typeof value === 'string') {
@@ -554,34 +563,25 @@
             }
             return String(value);
         }
+
         function normalizeLocalDate(value) {
             if (!value) return '';
-
-            // Nếu đã đúng định dạng YYYY-MM-DD thì giữ nguyên
             if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
                 return value;
             }
-
-            // Một số API trả về kiểu số (ví dụ Excel date hoặc Google serial)
             if (!isNaN(value)) {
-                // Nếu là số nhỏ, có thể là index ngày từ Excel
-                const base = new Date(Date.UTC(1899, 11, 30)); // Excel base date
+                const base = new Date(Date.UTC(1899, 11, 30));
                 const date = new Date(base.getTime() + value * 86400000);
                 return formatLocalDate(date);
             }
-
-            // Nếu là dạng chuỗi có dấu '/', ví dụ: 10/17/2025 hoặc 17/10/2025
             if (value.includes('/')) {
                 const parts = value.split('/');
                 let d, m, y;
-
                 if (parts[2].length === 2) {
                     y = '20' + parts[2];
                 } else {
                     y = parts[2];
                 }
-
-                // Đoán theo vị trí: nếu phần đầu > 12 thì chắc chắn là ngày/tháng
                 if (parseInt(parts[0]) > 12) {
                     d = parts[0];
                     m = parts[1];
@@ -589,19 +589,15 @@
                     m = parts[0];
                     d = parts[1];
                 }
-
                 return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
             }
-
-            // Nếu là dạng khác (ví dụ "Fri Oct 17 2025 ...") => parse rồi format lại
             const parsed = new Date(value);
             if (!isNaN(parsed)) {
                 return formatLocalDate(parsed);
             }
-
-            // fallback
             return value;
         }
+
         function formatLocalDate(date) {
             const yyyy = date.getFullYear();
             const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -609,7 +605,6 @@
             return `${yyyy}-${mm}-${dd}`;
         }
 
-        // Tính toán thời gian làm việc
         function calculateDuration(start, end) {
             if (!start || !end) return null;
             const [startHour, startMin] = start.split(':').map(Number);
@@ -623,7 +618,6 @@
             return { hours, minutes, totalMinutes };
         }
 
-        // Lưu API URL
         function saveApiUrl() {
             const url = document.getElementById('apiUrlInput').value.trim();
             if (!url) {
@@ -637,7 +631,6 @@
             loadData();
         }
 
-        // Kiểm tra cấu hình
         function checkConfig() {
             const savedUrl = localStorage.getItem('gsheet_api_url');
             if (savedUrl) {
@@ -649,7 +642,6 @@
             return false;
         }
 
-        // Hiển thị trạng thái đồng bộ
         function showSyncStatus(message, type = '') {
             const statusEl = document.getElementById('syncStatus');
             if (statusEl) {
@@ -662,7 +654,6 @@
             }
         }
 
-        // Load dữ liệu từ Google Sheets
         async function loadData() {
             if (!apiUrl) {
                 console.log('Chưa cấu hình API URL');
@@ -689,7 +680,6 @@
 
                     console.log(`📅 Processing date ${dateStr}:`, entries);
 
-                    // ✅ Chuẩn hóa key luôn là 'YYYY-MM-DD' theo giờ địa phương (tránh bị lùi ngày)
                     const normalizedDate = normalizeLocalDate(dateStr);
 
                     overtimeData[normalizedDate] = entries.map(entry => ({
@@ -711,7 +701,7 @@
                 showSyncStatus('❌ Lỗi: ' + err.message, 'error');
             }
         }
-        // Lưu dữ liệu lên Google Sheets
+
         async function saveDataToSheet(date, startTime, endTime, content) {
             if (!apiUrl) {
                 alert('Chưa cấu hình Google Sheets API!');
@@ -739,7 +729,6 @@
             }
         }
 
-        // Xóa dữ liệu từ Google Sheets
         async function deleteDataFromSheet(date) {
             if (!apiUrl) {
                 alert('Chưa cấu hình Google Sheets API!');
@@ -762,7 +751,6 @@
             }
         }
 
-        // Làm mới dữ liệu
         async function refreshData() {
             const btn = document.getElementById('refreshBtn');
             if (btn) btn.disabled = true;
@@ -770,7 +758,6 @@
             if (btn) btn.disabled = false;
         }
 
-        // Lấy events từ dữ liệu
         function getEventsFromData() {
             const events = [];
             for (const dateStr in overtimeData) {
@@ -805,7 +792,6 @@
             return events;
         }
 
-        // Cập nhật thống kê
         function updateStats() {
             const month = parseInt(document.getElementById('monthSelect').value);
             const year = parseInt(document.getElementById('yearSelect').value);
@@ -847,7 +833,6 @@
             if (avgHoursEl) avgHoursEl.textContent = daysCount > 0 ? `${avgHours}h ${avgMins}p` : '0h';
         }
 
-        // Hiển thị danh sách các lần tăng ca trong ngày
         function renderEntriesTable(dateStr) {
             console.log('🔍 renderEntriesTable called for:', dateStr);
             console.log('📊 All overtimeData:', overtimeData);
@@ -863,7 +848,7 @@
             body.innerHTML = '';
 
             const entries = overtimeData[dateStr];
-            console.log('📝 Entries for', dateStr, ':', entries);
+            console.log('🔍 Entries for', dateStr, ':', entries);
 
             if (!entries || !Array.isArray(entries) || entries.length === 0) {
                 console.log('⚠️ No entries found, hiding table');
@@ -896,7 +881,6 @@
             });
         }
 
-        // Hiển thị form thêm mới
         function showAddForm() {
             editingIndex = null;
             const formTitle = document.getElementById('formTitle');
@@ -910,14 +894,12 @@
             document.getElementById('overtimeContent').value = '';
         }
 
-        // Hủy form
         function cancelForm() {
             const formContainer = document.getElementById('entryFormContainer');
             if (formContainer) formContainer.style.display = 'none';
             editingIndex = null;
         }
 
-        // Sửa entry
         function editEntry(idx) {
             const entries = overtimeData[currentDate];
             if (!entries || !entries[idx]) return;
@@ -936,7 +918,6 @@
             document.getElementById('overtimeContent').value = entry.content || '';
         }
 
-        // Xóa entry
         async function deleteEntry(idx) {
             if (!confirm('Bạn có chắc muốn xóa dòng này?')) return;
 
@@ -964,7 +945,6 @@
             showSyncStatus('✅ Đã xóa thành công', 'success');
         }
 
-        // Lưu entry (thêm mới hoặc sửa)
         async function saveEntry() {
             const start = document.getElementById('startTime').value;
             const end = document.getElementById('endTime').value;
@@ -1008,7 +988,6 @@
             editingIndex = null;
         }
 
-        // Mở modal
         function openModal(date, entryIndex = null) {
             currentDate = date.format('YYYY-MM-DD');
             const displayDate = date.format('DD/MM/YYYY (dddd)');
@@ -1033,7 +1012,6 @@
             if (modal) modal.classList.add('active');
         }
 
-        // Đóng modal
         function closeModal() {
             const modal = document.getElementById('eventModal');
             const formContainer = document.getElementById('entryFormContainer');
@@ -1045,7 +1023,6 @@
             editingIndex = null;
         }
 
-        // Khởi tạo year select
         function initYearSelect() {
             const yearSelect = document.getElementById('yearSelect');
             if (!yearSelect) return;
@@ -1060,7 +1037,6 @@
             }
         }
 
-        // Cập nhật calendar view
         function updateCalendarView() {
             const monthSelect = document.getElementById('monthSelect');
             const yearSelect = document.getElementById('yearSelect');
@@ -1073,14 +1049,12 @@
             $('#calendar').fullCalendar('gotoDate', newDate);
         }
 
-        // Cập nhật calendar
         function updateCalendar() {
             if (!$('#calendar').data('fullCalendar')) return;
             $('#calendar').fullCalendar('removeEvents');
             $('#calendar').fullCalendar('addEventSource', getEventsFromData());
         }
 
-        // Đi đến hôm nay
         function goToToday() {
             const today = new Date();
             const monthSelect = document.getElementById('monthSelect');
@@ -1093,7 +1067,76 @@
             updateStats();
         }
 
-        // Khởi tạo calendar
+        function exportToExcel() {
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+
+            const msnv = prompt('Nhập MSNV:', '567');
+            if (!msnv) return;
+
+            const hoTen = prompt('Nhập Họ và Tên:', 'Bùi Văn Chất');
+            if (!hoTen) return;
+
+            const rows = [];
+            const sortedDates = Object.keys(overtimeData).sort();
+
+            sortedDates.forEach(dateStr => {
+                const date = new Date(dateStr);
+                if (date.getMonth() === month && date.getFullYear() === year) {
+                    const entries = overtimeData[dateStr];
+                    if (!entries || !Array.isArray(entries)) return;
+
+                    entries.forEach(entry => {
+                        const duration = calculateDuration(entry.startTime, entry.endTime);
+                        let totalHours = 0;
+                        
+                        if (duration && duration.totalMinutes > 0) {
+                            totalHours = (duration.totalMinutes / 60).toFixed(2);
+                        }
+
+                        const formattedDate = moment(dateStr).format('DD/MM/YYYY');
+
+                        rows.push({
+                            'MSNV': msnv,
+                            'HỌ VÀ TÊN': hoTen,
+                            'NGÀY': formattedDate,
+                            'GIỜ BẮT ĐẦU': entry.startTime || '',
+                            'GIỜ KẾT THÚC': entry.endTime || '',
+                            'TỔNG GIỜ TĂNG CA': totalHours,
+                            'DIỄN DẠI': entry.content || ''
+                        });
+                    });
+                }
+            });
+
+            if (rows.length === 0) {
+                alert('Không có dữ liệu tăng ca trong tháng này!');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(rows);
+
+            ws['!cols'] = [
+                { wch: 8 },
+                { wch: 20 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 15 },
+                { wch: 50 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Tăng ca');
+
+            const monthName = month + 1;
+            const filename = `TangCa_${hoTen}_Thang${monthName}_${year}.xlsx`;
+
+            XLSX.writeFile(wb, filename);
+            
+            showSyncStatus('✅ Đã export thành công!', 'success');
+        }
+
         function initCalendar() {
             checkConfig();
             loadData();
@@ -1139,12 +1182,10 @@
             updateStats();
         }
 
-        // Event listeners
         $(document).ready(function () {
             initCalendar();
         });
 
-        // Đóng modal khi click bên ngoài
         const eventModal = document.getElementById('eventModal');
         if (eventModal) {
             eventModal.addEventListener('click', function (e) {
