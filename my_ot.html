@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -407,6 +408,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -552,6 +554,60 @@
             }
             return String(value);
         }
+        function normalizeLocalDate(value) {
+            if (!value) return '';
+
+            // Nếu đã đúng định dạng YYYY-MM-DD thì giữ nguyên
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return value;
+            }
+
+            // Một số API trả về kiểu số (ví dụ Excel date hoặc Google serial)
+            if (!isNaN(value)) {
+                // Nếu là số nhỏ, có thể là index ngày từ Excel
+                const base = new Date(Date.UTC(1899, 11, 30)); // Excel base date
+                const date = new Date(base.getTime() + value * 86400000);
+                return formatLocalDate(date);
+            }
+
+            // Nếu là dạng chuỗi có dấu '/', ví dụ: 10/17/2025 hoặc 17/10/2025
+            if (value.includes('/')) {
+                const parts = value.split('/');
+                let d, m, y;
+
+                if (parts[2].length === 2) {
+                    y = '20' + parts[2];
+                } else {
+                    y = parts[2];
+                }
+
+                // Đoán theo vị trí: nếu phần đầu > 12 thì chắc chắn là ngày/tháng
+                if (parseInt(parts[0]) > 12) {
+                    d = parts[0];
+                    m = parts[1];
+                } else {
+                    m = parts[0];
+                    d = parts[1];
+                }
+
+                return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+
+            // Nếu là dạng khác (ví dụ "Fri Oct 17 2025 ...") => parse rồi format lại
+            const parsed = new Date(value);
+            if (!isNaN(parsed)) {
+                return formatLocalDate(parsed);
+            }
+
+            // fallback
+            return value;
+        }
+        function formatLocalDate(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
 
         // Tính toán thời gian làm việc
         function calculateDuration(start, end) {
@@ -616,37 +672,37 @@
             try {
                 showSyncStatus('⏳ Đang tải dữ liệu...', '');
                 console.log('🌐 Fetching from:', apiUrl);
-                
+
                 const response = await fetch(`${apiUrl}?action=getData`);
                 const data = await response.json();
-                
+
                 console.log('📥 Raw data from server:', data);
 
                 if (data.error) throw new Error(data.error);
 
                 overtimeData = {};
+
                 for (const dateStr in data) {
                     if (!data.hasOwnProperty(dateStr)) continue;
                     const entries = data[dateStr];
                     if (!entries) continue;
-                    
+
                     console.log(`📅 Processing date ${dateStr}:`, entries);
-                    
-                    // ✅ Đảm bảo key luôn là string format 'YYYY-MM-DD'
-                    const normalizedDate = dateStr.includes('-') ? dateStr : 
-                        new Date(dateStr).toISOString().split('T')[0];
-                    
+
+                    // ✅ Chuẩn hóa key luôn là 'YYYY-MM-DD' theo giờ địa phương (tránh bị lùi ngày)
+                    const normalizedDate = normalizeLocalDate(dateStr);
+
                     overtimeData[normalizedDate] = entries.map(entry => ({
                         startTime: normalizeTime(entry.startTime),
                         endTime: normalizeTime(entry.endTime),
                         content: entry.content || ''
                     }));
-                    
+
                     console.log(`  ✅ Normalized date key: ${normalizedDate}`, overtimeData[normalizedDate]);
                 }
 
                 console.log('✅ Final overtimeData:', overtimeData);
-                
+
                 updateCalendar();
                 updateStats();
                 showSyncStatus('✅ Đã tải dữ liệu thành công', 'success');
@@ -655,7 +711,6 @@
                 showSyncStatus('❌ Lỗi: ' + err.message, 'error');
             }
         }
-
         // Lưu dữ liệu lên Google Sheets
         async function saveDataToSheet(date, startTime, endTime, content) {
             if (!apiUrl) {
@@ -721,12 +776,12 @@
             for (const dateStr in overtimeData) {
                 const entries = overtimeData[dateStr];
                 if (!entries || !Array.isArray(entries)) continue;
-                
+
                 entries.forEach((entry, idx) => {
                     const start = entry.startTime || '';
                     const end = entry.endTime || '';
                     const content = entry.content || '(Không có nội dung)';
-                    
+
                     const duration = calculateDuration(start, end);
                     let timeLabel = '';
                     if (duration && duration.totalMinutes > 0) {
@@ -763,7 +818,7 @@
                 if (date.getMonth() === month && date.getFullYear() === year) {
                     const entries = overtimeData[dateStr];
                     if (!entries || !Array.isArray(entries)) continue;
-                    
+
                     let hasDuration = false;
                     entries.forEach(entry => {
                         const duration = calculateDuration(entry.startTime, entry.endTime);
@@ -772,7 +827,7 @@
                             hasDuration = true;
                         }
                     });
-                    
+
                     if (hasDuration) daysCount++;
                 }
             }
@@ -796,20 +851,20 @@
         function renderEntriesTable(dateStr) {
             console.log('🔍 renderEntriesTable called for:', dateStr);
             console.log('📊 All overtimeData:', overtimeData);
-            
+
             const container = document.getElementById('entriesTableContainer');
             const body = document.getElementById('entriesTableBody');
-            
+
             if (!body || !container) {
                 console.error('❌ Table elements not found');
                 return;
             }
-            
+
             body.innerHTML = '';
 
             const entries = overtimeData[dateStr];
             console.log('📝 Entries for', dateStr, ':', entries);
-            
+
             if (!entries || !Array.isArray(entries) || entries.length === 0) {
                 console.log('⚠️ No entries found, hiding table');
                 container.style.display = 'none';
@@ -818,15 +873,15 @@
 
             console.log('✅ Displaying', entries.length, 'entries');
             container.style.display = 'block';
-            
+
             entries.forEach((entry, idx) => {
                 const tr = document.createElement('tr');
                 const st = entry.startTime || '';
                 const et = entry.endTime || '';
                 const ct = entry.content || '(Không có nội dung)';
-                
+
                 console.log(`  Entry ${idx + 1}:`, st, '→', et, '-', ct);
-                
+
                 tr.innerHTML = `
                     <td>${idx + 1}</td>
                     <td>${st}</td>
@@ -846,10 +901,10 @@
             editingIndex = null;
             const formTitle = document.getElementById('formTitle');
             const formContainer = document.getElementById('entryFormContainer');
-            
+
             if (formTitle) formTitle.textContent = '➕ Thêm mới tăng ca';
             if (formContainer) formContainer.style.display = 'block';
-            
+
             document.getElementById('startTime').value = '';
             document.getElementById('endTime').value = '';
             document.getElementById('overtimeContent').value = '';
@@ -866,16 +921,16 @@
         function editEntry(idx) {
             const entries = overtimeData[currentDate];
             if (!entries || !entries[idx]) return;
-            
+
             const entry = entries[idx];
             editingIndex = idx;
-            
+
             const formTitle = document.getElementById('formTitle');
             const formContainer = document.getElementById('entryFormContainer');
-            
+
             if (formTitle) formTitle.textContent = '✏️ Sửa tăng ca';
             if (formContainer) formContainer.style.display = 'block';
-            
+
             document.getElementById('startTime').value = entry.startTime || '';
             document.getElementById('endTime').value = entry.endTime || '';
             document.getElementById('overtimeContent').value = entry.content || '';
@@ -884,12 +939,12 @@
         // Xóa entry
         async function deleteEntry(idx) {
             if (!confirm('Bạn có chắc muốn xóa dòng này?')) return;
-            
+
             const entries = overtimeData[currentDate];
             if (!entries) return;
-            
+
             entries.splice(idx, 1);
-            
+
             if (entries.length === 0) {
                 delete overtimeData[currentDate];
             } else {
@@ -925,16 +980,16 @@
             }
 
             if (editingIndex !== null) {
-                overtimeData[currentDate][editingIndex] = { 
-                    startTime: start, 
-                    endTime: end, 
-                    content: content 
+                overtimeData[currentDate][editingIndex] = {
+                    startTime: start,
+                    endTime: end,
+                    content: content
                 };
             } else {
-                overtimeData[currentDate].push({ 
-                    startTime: start, 
-                    endTime: end, 
-                    content: content 
+                overtimeData[currentDate].push({
+                    startTime: start,
+                    endTime: end,
+                    content: content
                 });
             }
 
@@ -961,11 +1016,11 @@
             const modalTitle = document.getElementById('modalTitle');
             const dateDisplay = document.getElementById('dateDisplay');
             const formContainer = document.getElementById('entryFormContainer');
-            
+
             if (modalTitle) modalTitle.textContent = 'Chi tiết tăng ca';
             if (dateDisplay) dateDisplay.value = displayDate;
             if (formContainer) formContainer.style.display = 'none';
-            
+
             editingIndex = null;
 
             renderEntriesTable(currentDate);
@@ -982,10 +1037,10 @@
         function closeModal() {
             const modal = document.getElementById('eventModal');
             const formContainer = document.getElementById('entryFormContainer');
-            
+
             if (modal) modal.classList.remove('active');
             if (formContainer) formContainer.style.display = 'none';
-            
+
             currentDate = null;
             editingIndex = null;
         }
@@ -994,7 +1049,7 @@
         function initYearSelect() {
             const yearSelect = document.getElementById('yearSelect');
             if (!yearSelect) return;
-            
+
             const currentYear = new Date().getFullYear();
             for (let year = currentYear - 2; year <= currentYear + 2; year++) {
                 const option = document.createElement('option');
@@ -1009,9 +1064,9 @@
         function updateCalendarView() {
             const monthSelect = document.getElementById('monthSelect');
             const yearSelect = document.getElementById('yearSelect');
-            
+
             if (!monthSelect || !yearSelect) return;
-            
+
             const month = parseInt(monthSelect.value);
             const year = parseInt(yearSelect.value);
             const newDate = new Date(year, month, 1);
@@ -1030,10 +1085,10 @@
             const today = new Date();
             const monthSelect = document.getElementById('monthSelect');
             const yearSelect = document.getElementById('yearSelect');
-            
+
             if (monthSelect) monthSelect.value = today.getMonth();
             if (yearSelect) yearSelect.value = today.getFullYear();
-            
+
             $('#calendar').fullCalendar('today');
             updateStats();
         }
@@ -1066,14 +1121,14 @@
 
             const monthSelectEl = document.getElementById('monthSelect');
             const yearSelectEl = document.getElementById('yearSelect');
-            
+
             if (monthSelectEl) {
                 monthSelectEl.addEventListener('change', function () {
                     updateCalendarView();
                     updateStats();
                 });
             }
-            
+
             if (yearSelectEl) {
                 yearSelectEl.addEventListener('change', function () {
                     updateCalendarView();
@@ -1100,4 +1155,5 @@
         }
     </script>
 </body>
+
 </html>
