@@ -632,13 +632,17 @@
                     
                     console.log(`📅 Processing date ${dateStr}:`, entries);
                     
-                    overtimeData[dateStr] = entries.map(entry => ({
+                    // ✅ Đảm bảo key luôn là string format 'YYYY-MM-DD'
+                    const normalizedDate = dateStr.includes('-') ? dateStr : 
+                        new Date(dateStr).toISOString().split('T')[0];
+                    
+                    overtimeData[normalizedDate] = entries.map(entry => ({
                         startTime: normalizeTime(entry.startTime),
                         endTime: normalizeTime(entry.endTime),
                         content: entry.content || ''
                     }));
                     
-                    console.log(`  ✅ Normalized:`, overtimeData[dateStr]);
+                    console.log(`  ✅ Normalized date key: ${normalizedDate}`, overtimeData[normalizedDate]);
                 }
 
                 console.log('✅ Final overtimeData:', overtimeData);
