@@ -615,8 +615,12 @@
 
             try {
                 showSyncStatus('⏳ Đang tải dữ liệu...', '');
+                console.log('🌐 Fetching from:', apiUrl);
+                
                 const response = await fetch(`${apiUrl}?action=getData`);
                 const data = await response.json();
+                
+                console.log('📥 Raw data from server:', data);
 
                 if (data.error) throw new Error(data.error);
 
@@ -626,19 +630,24 @@
                     const entries = data[dateStr];
                     if (!entries) continue;
                     
+                    console.log(`📅 Processing date ${dateStr}:`, entries);
+                    
                     overtimeData[dateStr] = entries.map(entry => ({
                         startTime: normalizeTime(entry.startTime),
                         endTime: normalizeTime(entry.endTime),
                         content: entry.content || ''
                     }));
+                    
+                    console.log(`  ✅ Normalized:`, overtimeData[dateStr]);
                 }
 
+                console.log('✅ Final overtimeData:', overtimeData);
+                
                 updateCalendar();
                 updateStats();
                 showSyncStatus('✅ Đã tải dữ liệu thành công', 'success');
-                console.log('✅ Dữ liệu đã load:', overtimeData);
             } catch (err) {
-                console.error('Lỗi khi tải dữ liệu:', err);
+                console.error('❌ Lỗi khi tải dữ liệu:', err);
                 showSyncStatus('❌ Lỗi: ' + err.message, 'error');
             }
         }
@@ -781,24 +790,38 @@
 
         // Hiển thị danh sách các lần tăng ca trong ngày
         function renderEntriesTable(dateStr) {
+            console.log('🔍 renderEntriesTable called for:', dateStr);
+            console.log('📊 All overtimeData:', overtimeData);
+            
             const container = document.getElementById('entriesTableContainer');
             const body = document.getElementById('entriesTableBody');
-            if (!body || !container) return;
+            
+            if (!body || !container) {
+                console.error('❌ Table elements not found');
+                return;
+            }
             
             body.innerHTML = '';
 
             const entries = overtimeData[dateStr];
+            console.log('📝 Entries for', dateStr, ':', entries);
+            
             if (!entries || !Array.isArray(entries) || entries.length === 0) {
+                console.log('⚠️ No entries found, hiding table');
                 container.style.display = 'none';
                 return;
             }
 
+            console.log('✅ Displaying', entries.length, 'entries');
             container.style.display = 'block';
+            
             entries.forEach((entry, idx) => {
                 const tr = document.createElement('tr');
                 const st = entry.startTime || '';
                 const et = entry.endTime || '';
                 const ct = entry.content || '(Không có nội dung)';
+                
+                console.log(`  Entry ${idx + 1}:`, st, '→', et, '-', ct);
                 
                 tr.innerHTML = `
                     <td>${idx + 1}</td>
